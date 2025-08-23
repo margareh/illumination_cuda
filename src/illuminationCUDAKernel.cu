@@ -20,10 +20,11 @@ __device__ void cartesian2spherical(float x, float y, float z, float& range, flo
     lat = asin(z / range);
     
     if (abs(x) < 1e-15 || abs(y) < 1e15) {
-        lat = 0;
+        lon = 0;
     } else {
-        lat = acos(x / sqrt(pow(x,2) + pow(y,2)));
-        if (y < 0) lat *= -1;
+        lon = acos(x / sqrt(pow(x,2) + pow(y,2)));
+        if (y < 0) lon *= -1;
+        lon += M_PI;
     }
 
     lat *= 180 / M_PI;
@@ -72,55 +73,59 @@ __global__ void illuminate_k(float *elev_db, float *eph, float *grid, float *ill
     
     // Get indices
     int i = blockIdx.x * blockDim.x + threadIdx.x; // index for this thread
-    if (i > N * N) return;
+    if (i >= N * N) return;
 
     // Get specific ephemeris values and lat longs for this thread
     float lat, lon;
     lat = grid[2*i];
     lon = grid[2*i+1];
 
-    // // Loop through ephemeris data and compute illumination fraction for each
-    // float sun_lat, sun_lon, sun_range, elev, azim;
-    // float elev_low, elev_high, horizon_elev, sun_elev_low, sun_elev_high;
-    // int azim_low, azim_high;
-    // float illumin_frac = 0;
-    // for (int t=0; t < T; t++){
+    // Loop through ephemeris data and compute illumination fraction for each
+    float sun_lat, sun_lon, sun_range, elev, azim;
+    float elev_low, elev_high, horizon_elev, sun_elev_low, sun_elev_high;
+    int azim_low, azim_high, low_ind, high_ind;
+    float illumin_frac = 0;
+    for (int t=0; t < T; t++){
         
-    //     // Current ephemeris values
-    //     sun_lat = eph[t];
-    //     sun_lon = eph[t+1];
-    //     sun_range = eph[t+2];
+        // Current ephemeris values
+        sun_lat = eph[t];
+        sun_lon = eph[t+1];
+        sun_range = eph[t+2];
 
-    //     // Compute elevation and azimuth of sun relative to this lat and long
-    //     calc_elev_azim(sun_lat, sun_lon, sun_range, lat, lon, elev, azim);
+        // Compute elevation and azimuth of sun relative to this lat and long
+        calc_elev_azim(sun_lat, sun_lon, sun_range, lat, lon, elev, azim);
 
-    //     // Compare to horizon for this azimuth
-    //     azim_low = floor(azim);
-    //     azim_high = ceil(azim);
-    //     if (azim_low > 359) azim_low -= 360;
-    //     if (azim_high > 359) azim_high -= 360;
+        // Compare to horizon for this azimuth
+        azim_low = floor(azim);
+        azim_high = ceil(azim);
+        if (azim_low < 0) azim_low += 360;
+        if (azim_high < 0) azim_high += 360;
+        if (azim_low > 359) azim_low -= 360;
+        if (azim_high > 359) azim_high -= 360;
 
-    //     elev_low = elev_db[M * i + azim_low];
-    //     elev_high = elev_db[M * i + azim_high];
-    //     horizon_elev = 0.5 * (elev_low + elev_high);
+        low_ind = M * i + azim_low;
+        high_ind = M * i + azim_high;
+        elev_low = elev_db[M * i + azim_low];
+        elev_high = elev_db[M * i + azim_high];
+        horizon_elev = 0.5 * (elev_low + elev_high);
 
-    //     sun_elev_low = elev - SUN_DISC_RADIUS_DEG;
-    //     sun_elev_high = elev + SUN_DISC_RADIUS_DEG;
+        sun_elev_low = elev - SUN_DISC_RADIUS_DEG;
+        sun_elev_high = elev + SUN_DISC_RADIUS_DEG;
 
-    //     if (horizon_elev < sun_elev_low) {
-    //         illumin_frac += 0;
-    //     } else if (horizon_elev > sun_elev_high) {
-    //         illumin_frac += 1;
-    //     } else if (sun_elev_low < horizon_elev && horizon_elev < elev) {
-    //         illumin_frac += horizon_elev - sun_elev_low;
-    //     } else {
-    //         illumin_frac += sun_elev_high - horizon_elev;
-    //     }
+        if (horizon_elev < sun_elev_low) {
+            illumin_frac += 0;
+        } else if (horizon_elev > sun_elev_high) {
+            illumin_frac += 1;
+        } else if (sun_elev_low < horizon_elev && horizon_elev < elev) {
+            illumin_frac += horizon_elev - sun_elev_low;
+        } else {
+            illumin_frac += sun_elev_high - horizon_elev;
+        }
 
-    // }
+    }
 
-    // // Store output
-    // illumin[i] = illumin_frac / T;
+    // Store output
+    illumin[i] = illumin_frac / T;
 
 }
 

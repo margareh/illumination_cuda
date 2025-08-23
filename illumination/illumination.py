@@ -24,7 +24,8 @@ def illuminate_cuda(elev_db, eph, grid, psr_threshold=0.001):
     grid = torch.tensor(grid).flatten().float() # should be N * N * 2 (lat, lon) for each point on surface
 
     # output
-    illumin = torch.tensor((N, N)).flatten().float()
+    illumin = torch.zeros((N, N)).flatten().float()
+    # print(illumin.shape)
 
     # print(M) # 360
     # print(N) # 100
@@ -34,7 +35,6 @@ def illuminate_cuda(elev_db, eph, grid, psr_threshold=0.001):
     # print(grid.shape) # 20000 = 100 * 100 * 2
 
     # call to CUDA kernel wrapper
-    print("Calling kernel")
     illuminationCUDA(elev_db, eph, grid, illumin, M, N, T)
 
     # reshape output
