@@ -19,9 +19,12 @@ def illuminate_cuda(elev_db, eph, grid, psr_threshold=0.001):
     N = elev_db.shape[1]
     T = eph.shape[0]
 
-    elev_db = torch.tensor(elev_db).flatten().float() # should be M * N * N
+    elev_db = torch.tensor(elev_db).transpose(0,2).transpose(0,1).flatten().float() # should be M * N * N
     eph = torch.tensor(eph).flatten().float() # should be T * 3 (lat, lon, range)
     grid = torch.tensor(grid).flatten().float() # should be N * N * 2 (lat, lon) for each point on surface
+
+    # print(eph[0:10])
+    # print(grid[0:10])
 
     # output
     illumin = torch.zeros((N, N)).flatten().float()
