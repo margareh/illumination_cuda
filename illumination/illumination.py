@@ -18,18 +18,26 @@ def illuminate_cuda(eph, grid, psr_threshold=0.001, max_range=0.2, res=1, min_el
     N = grid.shape[0]
     T = eph.shape[0]
 
-    eph = torch.tensor(eph).flatten().float() # should be T * 3 (lat, lon, range)
-    grid = torch.tensor(grid[...,0:2]).flatten().float() # should be N * N * 2 (lat, lon, height) for each point on surface
-    hmap = torch.tensor(grid[...,-1]).flatten().float() # should be N * N (height)
-
+    eph = torch.tensor(eph, dtype=torch.float32).flatten() # should be T * 3 (lat, lon, range)
+    hmap = torch.tensor(grid[...,-1], dtype=torch.float32).flatten() # should be N * N (height)
+    grid = torch.tensor(grid[...,0:2], dtype=torch.float32).flatten() # should be N * N * 2 (lat, lon) for each point on surface
+    
     # print(eph[0:10])
     # print(grid[0:10])
 
     # output
-    illumin = torch.zeros((N, N)).flatten().float()
+    illumin = torch.zeros_like(hmap)
     # print(illumin.shape)
 
+    # print(eph.shape)
+    # print(grid.shape)
+    # print(hmap.shape)
+    # print(illumin.shape)
+    # print(N)
+    # print(T)
+
     # call to CUDA kernel wrapper
+    # print("Call to kernel")
     illuminationCUDA(eph, grid, hmap, illumin, N, T, max_range, res, min_elev, elev_delta)
 
     # reshape output

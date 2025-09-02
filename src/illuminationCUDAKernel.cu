@@ -356,12 +356,13 @@ void illuminationCUDAKernel(float *eph, float *grid, float *hmap, float *illumin
     cudaMalloc(&d_illumin, N * N * sizeof(float));
 
     // Copy data over to shared arrays
+	// std::cout << "memcpy" << std::endl;
     cudaMemcpy(d_eph, eph, T * 3 * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_grid, grid, N * N * 2 * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_hmap, hmap, N * N * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_illumin, illumin, N * N * sizeof(float), cudaMemcpyHostToDevice);
 
     // Call the kernel
+	// std::cout << "CUDA KERNEL" << std::endl;
     illuminate_k<<<GET_BLOCKS(N*N), CUDA_NUM_THREADS, 0, stream>>>(d_eph, d_grid, d_hmap, d_illumin, N, T, max_range, res, min_elev, elev_delta);
 
     // Read the results back into the ratios array
@@ -376,10 +377,12 @@ void illuminationCUDAKernel(float *eph, float *grid, float *hmap, float *illumin
     // Clear memory
     cudaFree(d_eph);
     cudaFree(d_grid);
+	cudaFree(d_hmap);
     cudaFree(d_illumin);
 
     d_eph=NULL;
     d_grid=NULL;
+	d_hmap=NULL;
     d_illumin=NULL;
 
 }
