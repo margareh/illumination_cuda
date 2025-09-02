@@ -7,21 +7,20 @@ import numpy as np
 import torch
 from illuminationCUDA import illuminationCUDA
 
-def illuminate_cuda(elev_db, eph, grid, psr_threshold=0.001):
+def illuminate_cuda(eph, grid, psr_threshold=0.001, max_range=0.2, res=1, min_elev=-89, elev_delta=0.25):
     """
     Python wrapper for illumination model using CUDA
 
-    Inputs: horizon elevation maps, ephemeris (elevation, azimuth, range), grid (lat long for surface)
-    Outputs: illumination fraction map
+    Inputs: ephemeris (elevation, azimuth, range), grid (lat long for surface)
+    Outputs: illumination fraction map, PSR map
     """
 
-    M = elev_db.shape[0]
-    N = elev_db.shape[1]
+    N = grid.shape[0]
     T = eph.shape[0]
 
-    elev_db = torch.tensor(elev_db).transpose(0,2).transpose(0,1).flatten().float() # should be M * N * N
     eph = torch.tensor(eph).flatten().float() # should be T * 3 (lat, lon, range)
-    grid = torch.tensor(grid).flatten().float() # should be N * N * 2 (lat, lon) for each point on surface
+    grid = torch.tensor(grid[...,0:2]).flatten().float() # should be N * N * 2 (lat, lon, height) for each point on surface
+    hmap = torch.tensor(grid[...,-1]).flatten().float() # should be N * N (height)
 
     # print(eph[0:10])
     # print(grid[0:10])
@@ -30,15 +29,8 @@ def illuminate_cuda(elev_db, eph, grid, psr_threshold=0.001):
     illumin = torch.zeros((N, N)).flatten().float()
     # print(illumin.shape)
 
-    # print(M) # 360
-    # print(N) # 100
-    # print(T) # 7671
-    # print(elev_db.shape) # 3600000 = 360 * 100 * 100
-    # print(eph.shape) # 23013 = 3 * 7671
-    # print(grid.shape) # 20000 = 100 * 100 * 2
-
     # call to CUDA kernel wrapper
-    illuminationCUDA(elev_db, eph, grid, illumin, M, N, T)
+    illuminationCUDA(eph, grid, hmap, illumin, N, T, max_range, res, min_elev, elev_delta)
 
     # reshape output
     # result should be N x N

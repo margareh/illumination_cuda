@@ -3,11 +3,11 @@
 #include <iostream>
 #include "illuminationCUDAKernel.cuh"
 
-void illuminationCUDA(at::Tensor elev_db, at::Tensor eph, at::Tensor grid,
-                  at::Tensor illumin, int M, int N, int T) {
+void illuminationCUDA(at::Tensor eph, at::Tensor grid, at::Tensor hmap,
+                  at::Tensor illumin, int N, int T, float max_range, float res, float min_elev, float elev_delta) {
     // call to CUDA kernel
-    illuminationCUDAKernel(elev_db.data_ptr<float>(), eph.data_ptr<float>(), grid.data_ptr<float>(), illumin.data_ptr<float>(),
-                       M, N, T, at::cuda::getCurrentCUDAStream());
+    illuminationCUDAKernel(eph.data_ptr<float>(), grid.data_ptr<float>(), hmap.data_ptr<float>(), illumin.data_ptr<float>(),
+                       N, T, max_range, res, min_elev, elev_delta, at::cuda::getCurrentCUDAStream());
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m){        

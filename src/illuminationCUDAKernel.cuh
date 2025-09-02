@@ -1,1 +1,1 @@
-void illuminationCUDAKernel(float *elev_db, float *eph, float *grid, float *illumin, int M, int N, int T, cudaStream_t stream);
+void illuminationCUDAKernel(float *eph, float *grid, float *hmap, float *illumin, int N, int T, float max_range, float res, float min_elev, float elev_delta, cudaStream_t stream);
